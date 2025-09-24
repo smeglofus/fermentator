@@ -1,28 +1,33 @@
 # Fermentator
-An IoT platform for monitoring and controlling fermentation box (ESP32 → MQTT → Go Ingest → TimescaleDB → FastAPI → Next.js).
-Goal: a home project that mirrors a production-like stack (k3s, Helm, CI/CD, Cloudflare Tunnel).
+Minimal fermentation controller/monitor built for a single Raspberry Pi with Docker Compose. Telemetry from ESP32 every 5 s via MQTT; processing and UI in Node‑RED; data persisted in PostgreSQL; optional Grafana for charts; Caddy for reverse‑proxy and OTA file serving.
 
 
 ## Architecture Overview
+
 
 **ESP32**: telemetry every 5 s over MQTT/TLS; downlink commands to change temperature setpoint; OTA via HTTPS (esp_https_ota).
 
 **MQTT broker:** Eclipse Mosquitto (auth, ACL; only state is retained).
 
-**Ingest (Go):** subscribes to MQTT, validates, writes to TimescaleDB, maintains Redis cache of last readings, and dispatches commands (Redis Streams → MQTT devices/<id>/cmd).
+**Node‑RED** – flows (ingest→DB), dashboard, commands, alerts, OTA orchestration
 
-**API (FastAPI):** REST for devices, firmware, commands; also serves OTA binaries over HTTPS.
-
-**Web (Next.js):** dashboard, graphs, setpoint control.
-
-**DB:** TimescaleDB (hypertables, continuous aggregates, compression, retention).
-
-**Redis:** cache of last values and command queue (Streams).
+**DB:** PostgreSQL – simple time‑series table + retention job
 
 **Grafana:** dashboards & alerting.
 
-**k3s + Traefik:** Kubernetes single‑node with Ingress & TLS termination.
+**Caddy** reverse‑proxy + static server for OTA files
 
-**Cloudflare Tunnel:** public access without router port‑forwarding.
+**Cloudflare Tunnel:** public access without router port‑forwarding. or **Tailscale** – private remote access (no public ports)
 
 
+## Features
+
+Live dashboard (temps, SG, relay status) + charts
+
+One‑click actions: set temperature, pause heating
+
+Downlink commands to ESP32 via MQTT (cmd/setpoint, cmd/config)
+
+OTA: upload FW, auto SHA‑256, update manifest, notify device
+
+Basic alerts (out‑of‑range, sensor loss) via Telegram
