@@ -31,3 +31,92 @@ Downlink commands to ESP32 via MQTT (cmd/setpoint, cmd/config)
 OTA: upload FW, auto SHA‑256, update manifest, notify device
 
 Basic alerts (out‑of‑range, sensor loss) via Telegram
+
+
+## Roadmap / Milestones
+
+### M0 – Base System (0.5–1 day)
+**Tasks**
+- RPi OS 64-bit, hostname, SSH, timezone
+- Install Docker + Docker Compose
+- Repo scaffold (folders, `compose.yml`, `.env.example`)
+- Create a non-root user for running containers
+
+**DoD**
+- `docker compose ps` shows a running “hello-world” service; repo initialized (git).
+
+---
+
+### M1 – Broker & DB (0.5 day)
+**Tasks**
+- Mosquitto: `mosquitto.conf`, `passwd`, `acl` (at least users `dev-123`, `nodered`)
+- Postgres: container up, `init.sql` (table `reading`, index)
+- Health checks: MQTT pub/sub in LAN; DB connection from host
+
+**DoD**
+- `mosquitto_sub`/`mosquitto_pub` work with auth; `psql` shows table `reading`.
+
+---
+
+### M2 – Ingest & Dashboard (1–2 days)
+**Tasks**
+- Node-RED: install palettes (`node-red-node-postgres`, Dashboard if used)
+- **Ingest flow:** `mqtt in (devices/+/telemetry)` → `json` → `function(validate)` → Postgres **INSERT**
+- **Dashboard flow:** live gauges + simple 24h chart (MQTT stream or SQL query)
+- ESP32: sends telemetry every 5 s (QoS1, JSON)
+
+**DoD**
+- New rows appear in `reading`; dashboard shows latest values and a 24h curve.
+
+---
+
+### M3 – Commands (0.5 day)
+**Tasks**
+- Node-RED Dashboard: UI slider/button “Setpoint”
+- Flow: UI → `devices/<id>/cmd/setpoint` (QoS1)
+- ESP32: confirmation in `devices/<id>/state` (e.g., `applied_setpoint`)
+- UI shows ACK (text/notification)
+
+**DoD**
+- Changing setpoint from UI → device confirms in `state` within ≤ 2 s.
+
+---
+
+### M4 – OTA (0.5–1 day)
+**Tasks**
+- Caddy (or Node-RED file server): folder `/ota/<device>/`
+- Node-RED upload flow: accept firmware, compute **SHA-256**, write `manifest.json`
+- Publish `fw/notify` (MQTT) with `{ version, url, sha256 }`
+- ESP32: `esp_https_ota` + A/B rollback test
+
+**DoD**
+- Two consecutive successful OTA updates (A→B→A); version visible in `state`.
+
+---
+
+### M5 – Alerts & Retention (0.5 day)
+**Tasks**
+- Alert flow: out-of-range temperature / ROC → Telegram or email
+- Retention: cron (Node-RED `cron-plus` or crontab) — `DELETE older than 400d` + `VACUUM`
+- UI parameters for thresholds (e.g., min/max temperature)
+
+**DoD**
+- Test alert delivered; old data are pruned on schedule.
+
+---
+
+### M6 – Backups & Docs (0.5 day)
+**Tasks**
+- `postgres/backup.sh` + cron → daily `pg_dump` to `/backups` (SSD/NAS)
+- README: deployment steps, troubleshooting, restore procedure
+- Export/import Node-RED flows (`flows.json`) into the repo
+
+**DoD**
+- A fresh `.dump` exists and a restore into an empty DB was verified.
+
+
+
+
+Tailscale pro vzdálený přístup
+
+Malé API (FastAPI) pro CSV exporty a jednoduchou autorizaci
