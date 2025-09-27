@@ -1,0 +1,8 @@
+user dev-001
+pattern write devices/%u/telemetry
+pattern write devices/%u/state
+pattern read  devices/%u/cmd/#
+
+user nodered
+topic read  #
+topic write #
