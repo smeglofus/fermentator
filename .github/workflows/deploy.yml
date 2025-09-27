@@ -1,33 +1,44 @@
 name: Deploy to RPi
+
 on:
   push:
-    branches: ["**"]   # nebo ["main"] pokud chceš jen main
+    branches: ["**"]   # změň na ["main"], pokud chceš nasazovat jen z main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # 1) Načti privátní klíč pro SSH (uložený v repo Secrets)
       - name: Start ssh-agent and add key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.RPI_SSH_KEY }}
 
-      - name: Trust RPi host key
-        run: ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
+      # 2) Připoj se poprvé s accept-new, ať se fingerprint přidá automaticky
+      - name: Warm up SSH (accept new host key)
+        env:
+          HOST: ${{ secrets.RPI_HOST }}
+          USER: ${{ secrets.RPI_USER }}
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new $USER@$HOST "echo 'SSH OK'"
 
+      # 3) Remote deploy: clone/checkout aktuální větev a docker compose up
       - name: Remote deploy (checkout branch + compose up)
         env:
-          REPO_HTTPS: "https://github.com/${{ github.repository }}.git"
-          BRANCH: "${{ github.ref_name }}"
+          HOST: ${{ secrets.RPI_HOST }}
+          USER: ${{ secrets.RPI_USER }}
+          BRANCH: ${{ github.ref_name }}
+          REPO_HTTPS: https://github.com/${{ github.repository }}.git
         run: |
-          ssh ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
+          ssh $USER@$HOST "
             set -e
-            command -v git >/dev/null || sudo apt-get update && sudo apt-get install -y git
-            [ -d ~/tempehlab ] || git clone $REPO_HTTPS ~/tempehlab
+            command -v git >/dev/null || (sudo apt-get update && sudo apt-get install -y git)
+            [ -d ~/tempehlab ] || git clone '$REPO_HTTPS' ~/tempehlab
             cd ~/tempehlab
             git fetch origin
-            git checkout \"$BRANCH\" || git checkout -b \"$BRANCH\"
-            git pull origin \"$BRANCH\"
+            git checkout '$BRANCH' 2>/dev/null || git checkout -b '$BRANCH'
+            git pull origin '$BRANCH'
             docker compose pull || true
             docker compose up -d --remove-orphans
           "
