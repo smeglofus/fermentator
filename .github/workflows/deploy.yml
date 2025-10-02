@@ -30,4 +30,4 @@ jobs:
 
       # volitelně: krátký healthcheck
       - name: Show status
-        run: docker compose ps
+        run: docker ps
