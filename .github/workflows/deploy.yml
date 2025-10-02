@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, linux, arm64, rpi]   # shodné s tvými labels
+    runs-on: [self-hosted, linux, arm64, rpi]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,7 +24,9 @@ jobs:
         run: docker compose pull || true
 
       - name: Deploy (compose up)
-        run: docker compose up -d --remove-orphans
+        run: |
+          cd tempehlab
+          docker compose up -d --remove-orphans
 
       # volitelně: krátký healthcheck
       - name: Show status
