@@ -26,6 +26,7 @@ jobs:
       - name: Deploy (compose up)
         run: |
           cd tempehlab
+          docker compose down
           docker compose up -d --remove-orphans
 
       # volitelně: krátký healthcheck
