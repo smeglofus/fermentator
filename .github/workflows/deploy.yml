@@ -1,44 +1,31 @@
-name: Deploy to RPi
+name: Deploy on RPi (self-hosted)
 
 on:
   push:
-    branches: ["**"]   # změň na ["main"], pokud chceš nasazovat jen z main
+    branches: ["**"]   # nebo ["main"]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-
+    runs-on: [self-hosted, linux, arm64, rpi]   # shodné s tvými labels
     steps:
-      # 1) Načti privátní klíč pro SSH (uložený v repo Secrets)
-      - name: Start ssh-agent and add key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.RPI_SSH_KEY }}
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # 2) Připoj se poprvé s accept-new, ať se fingerprint přidá automaticky
-      - name: Warm up SSH (accept new host key)
-        env:
-          HOST: ${{ secrets.RPI_HOST }}
-          USER: ${{ secrets.RPI_USER }}
+      - name: Ensure Docker is available
         run: |
-          ssh -o StrictHostKeyChecking=accept-new $USER@$HOST "echo 'SSH OK'"
+          docker version
+          docker compose version || true
 
-      # 3) Remote deploy: clone/checkout aktuální větev a docker compose up
-      - name: Remote deploy (checkout branch + compose up)
-        env:
-          HOST: ${{ secrets.RPI_HOST }}
-          USER: ${{ secrets.RPI_USER }}
-          BRANCH: ${{ github.ref_name }}
-          REPO_HTTPS: https://github.com/${{ github.repository }}.git
-        run: |
-          ssh $USER@$HOST "
-            set -e
-            command -v git >/dev/null || (sudo apt-get update && sudo apt-get install -y git)
-            [ -d ~/tempehlab ] || git clone '$REPO_HTTPS' ~/tempehlab
-            cd ~/tempehlab
-            git fetch origin
-            git checkout '$BRANCH' 2>/dev/null || git checkout -b '$BRANCH'
-            git pull origin '$BRANCH'
-            docker compose pull || true
-            docker compose up -d --remove-orphans
-          "
+      - name: Pull images (optional)
+        run: docker compose pull || true
+
+      - name: Deploy (compose up)
+        run: docker compose up -d --remove-orphans
+
+      # volitelně: krátký healthcheck
+      - name: Show status
+        run: docker compose ps
