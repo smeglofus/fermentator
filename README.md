@@ -1,5 +1,5 @@
 # Fermentator
-Minimal fermentation controller/monitor built for a single Raspberry Pi with Docker Compose. Telemetry from ESP32 every 5 s via MQTT; processing and UI in Node‑RED; data persisted in PostgreSQL; optional Grafana for charts; Caddy for reverse‑proxy and OTA file serving.
+Minimal fermentation controller/monitor built for a single Raspberry Pi with Docker Compose. Telemetry from ESP32 every 5 s via MQTT; processing and UI in Node‑RED; data persisted in SQLite; optional Grafana for charts; Caddy for reverse‑proxy and OTA file serving.
 
 
 ## Architecture Overview
@@ -11,7 +11,7 @@ Minimal fermentation controller/monitor built for a single Raspberry Pi with Doc
 
 **Node‑RED** – flows (ingest→DB), dashboard, commands, alerts, OTA orchestration
 
-**DB:** PostgreSQL – simple time‑series table + retention job
+**DB:** SWLite – simple time‑series table + retention job
 
 **Grafana:** dashboards & alerting.
 
