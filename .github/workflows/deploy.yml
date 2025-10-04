@@ -31,8 +31,8 @@ jobs:
 
           # non-interactive vytvoření/aktualizace uživatelů
           docker run --rm -v "$PWD/mosquitto:/mosquitto" eclipse-mosquitto:2 \
-            sh -c "mosquitto_passwd -b /mosquitto/config/passwd dev-001 \"$DEV_PW\" && \
-                   mosquitto_passwd -b /mosquitto/config/passwd nodered \"$NR_PW\""
+            sh -c "mosquitto_passwd -b /mosquitto/passwd dev-001 \"$DEV_PW\" && \
+                   mosquitto_passwd -b /mosquitto/passwd nodered \"$NR_PW\""
 
       - name: Pull images (optional)
         working-directory: tempehlab
