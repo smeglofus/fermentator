@@ -2,7 +2,7 @@ name: Deploy on RPi (self-hosted)
 
 on:
   push:
-    branches: ["**"]   # nebo ["main"]
+    branches: ["**"]
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -15,20 +15,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Ensure Docker is available
+      - name: Prepare secrets & files
+        working-directory: tempehlab
+        env:
+          DEV_PW: ${{ secrets.MQTT_DEV001_PW }}
+          NR_PW:  ${{ secrets.MQTT_DEV001_PW }}
         run: |
-          docker version
-          docker compose version || true
+          set -e
+          mkdir -p mosquitto/data
+          # vždy zajistíme, že 'passwd' je SOUBOR (ne adresář)
+          rm -rf mosquitto/passwd
+          touch mosquitto/passwd
+          sudo chown 0:0 mosquitto/passwd
+          sudo chmod 600 mosquitto/passwd
+
+          # non-interactive vytvoření/aktualizace uživatelů
+          docker run --rm -v "$PWD/mosquitto:/mosquitto" eclipse-mosquitto:2 \
+            sh -c "mosquitto_passwd -b /mosquitto/config/passwd dev-001 \"$DEV_PW\" && \
+                   mosquitto_passwd -b /mosquitto/config/passwd nodered \"$NR_PW\""
 
       - name: Pull images (optional)
+        working-directory: tempehlab
         run: docker compose pull || true
 
       - name: Deploy (compose up)
+        working-directory: tempehlab
         run: |
-          cd tempehlab
           docker compose down
           docker compose up -d --remove-orphans
 
-      # volitelně: krátký healthcheck
       - name: Show status
         run: docker ps
