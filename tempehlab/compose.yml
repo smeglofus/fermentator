@@ -6,20 +6,8 @@ services:
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - ./mosquitto/acl:/mosquitto/config/acl
-      - ./mosquitto/passwd:/mosquitto/config/passwd
+      - ./mosquitto/passwd:/mosquitto/passwd
       - ./mosquitto/data:/mosquitto/data
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: fermenter
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: change-me
-    volumes:
-      - ./postgres/data:/var/lib/postgresql/data      # (ideálně na SSD)
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports: ["5432:5432"]
     restart: unless-stopped
 
   nodered:
@@ -27,8 +15,9 @@ services:
     environment: ["TZ=Europe/Prague"]
     ports: ["1880:1880"]
     volumes:
-      - ./nodered:/data
-    depends_on: [mosquitto, postgres]
+      - ./nodered/data:/data                
+      - ./nodered/data/sqlite:/data/sqlite
+    depends_on: [mosquitto]
     restart: unless-stopped
 
   caddy:
