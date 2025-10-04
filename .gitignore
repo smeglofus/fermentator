@@ -1,6 +1,5 @@
 mosquitto/passwd
 nodered/data/*
-nodered/*
 !nodered/data/sqlite/
 nodered/data/sqlite/*.db
 caddy/ota/*

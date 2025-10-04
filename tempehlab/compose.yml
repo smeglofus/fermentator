@@ -7,7 +7,7 @@ services:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - ./mosquitto/acl:/mosquitto/config/acl
       - ./mosquitto/passwd:/mosquitto/config/passwd
-      - ./mosquitto/data:/mosquitto/data
+      - /var/lib/tempehlab/mosquitto:/mosquitto/data
     restart: unless-stopped
 
   nodered:
@@ -15,8 +15,8 @@ services:
     environment: ["TZ=Europe/Prague"]
     ports: ["1880:1880"]
     volumes:
-      - ./nodered/data:/data                
-      - ./nodered/data/sqlite:/data/sqlite
+      - /var/lib/tempehlab/nodered:/data
+      - /var/lib/tempehlab/sqlite:/data/sqlite
     depends_on: [mosquitto]
     restart: unless-stopped
 
@@ -25,6 +25,6 @@ services:
     ports: ["80:80"]
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./caddy/ota:/srv/ota
+      - /var/lib/tempehlab/ota:/srv/ota
     depends_on: [nodered]
     restart: unless-stopped
