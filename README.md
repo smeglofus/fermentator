@@ -13,8 +13,6 @@ Minimal fermentation controller/monitor built for a single Raspberry Pi with Doc
 
 **DB:** SQLite – simple time‑series table + retention job
 
-**Grafana:** dashboards & alerting. - maybe
-
 **Caddy** reverse‑proxy + static server for OTA files
 
 **Cloudflare Tunnel:** public access without router port‑forwarding. or **Tailscale** – private remote access (no public ports)
