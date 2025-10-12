@@ -9,7 +9,7 @@ Minimal fermentation controller/monitor built for a single Raspberry Pi with Doc
 
 **MQTT broker:** Eclipse Mosquitto (auth, ACL; only state is retained).
 
-**Node‑RED** – flows (ingest→DB), dashboard, commands, alerts, OTA orchestration
+**Node‑RED** – flows (ingest→DB), dashboard, commands, alerts, OTA orchestration.
 
 **DB:** SQLite – simple time‑series table + retention job
 
