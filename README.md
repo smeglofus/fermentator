@@ -13,7 +13,7 @@ Minimal fermentation controller/monitor built for a single Raspberry Pi with Doc
 
 **DB:** SQLite – simple time‑series table + retention job
 
-**Grafana:** dashboards & alerting.
+**Grafana:** dashboards & alerting. - maybe
 
 **Caddy** reverse‑proxy + static server for OTA files
 
