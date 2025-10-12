@@ -11,7 +11,7 @@ Minimal fermentation controller/monitor built for a single Raspberry Pi with Doc
 
 **Node‑RED** – flows (ingest→DB), dashboard, commands, alerts, OTA orchestration
 
-**DB:** SWLite – simple time‑series table + retention job
+**DB:** SQLite – simple time‑series table + retention job
 
 **Grafana:** dashboards & alerting.
 
@@ -35,26 +35,7 @@ Basic alerts (out‑of‑range, sensor loss) via Telegram
 
 ## Roadmap / Milestones
 
-### M0 – Base System (0.5–1 day)
-**Tasks**
-- RPi OS 64-bit, hostname, SSH, timezone
-- Install Docker + Docker Compose
-- Repo scaffold (folders, `compose.yml`, `.env.example`)
-- Create a non-root user for running containers
 
-**DoD**
-- `docker compose ps` shows a running “hello-world” service; repo initialized (git).
-
----
-
-### M1 – Broker & DB (0.5 day)
-**Tasks**
-- Mosquitto: `mosquitto.conf`, `passwd`, `acl` (at least users `dev-123`, `nodered`)
-- Postgres: container up, `init.sql` (table `reading`, index)
-- Health checks: MQTT pub/sub in LAN; DB connection from host
-
-**DoD**
-- `mosquitto_sub`/`mosquitto_pub` work with auth; `psql` shows table `reading`.
 
 ---
 
@@ -115,6 +96,21 @@ Basic alerts (out‑of‑range, sensor loss) via Telegram
 - A fresh `.dump` exists and a restore into an empty DB was verified.
 
 
+### Data scheme:
+
+CREATE TABLE IF NOT EXISTS reading (
+  ts            TEXT NOT NULL,                -- ISO-8601 UTC '...Z'
+  device_id     TEXT NOT NULL,
+  temp_c        REAL NOT NULL,                -- aktuální teplota
+  hum_pct       REAL NOT NULL,                -- aktuální vlhkost
+  temp_set_c    REAL,                         -- žádaná teplota (NULL ok)
+  hum_set_pct   REAL,                         -- žádaná vlhkost (NULL ok)
+  fan_on        INTEGER NOT NULL DEFAULT 0,   -- 0/1
+  heater_on     INTEGER NOT NULL DEFAULT 0,   -- 0/1
+  fw            TEXT                          -- verze FW (NULL ok)
+);
+CREATE INDEX IF NOT EXISTS idx_reading_ts       ON reading(ts);
+CREATE INDEX IF NOT EXISTS idx_reading_dev_ts   ON reading(device_id, ts);
 
 
 Tailscale pro vzdálený přístup
