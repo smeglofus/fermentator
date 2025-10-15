@@ -12,6 +12,10 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
+
+      - name: Fix workspace permissions (pre-checkout)
+        run: sudo chown -R "$USER:$USER" "$GITHUB_WORKSPACE" || true
+
       - name: Checkout
         uses: actions/checkout@v4
 
