@@ -16,21 +16,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Prepare secrets & files
-        working-directory: tempehlab
         env:
           DEV_PW: ${{ secrets.MQTT_DEV001_PW }}
           NR_PW:  ${{ secrets.MQTT_DEV001_PW }}
         run: |
           set -e
-          mkdir -p mosquitto/data
-          # vždy zajistíme, že 'passwd' je SOUBOR (ne adresář)
-          rm -rf mosquitto/passwd
-          touch mosquitto/passwd
-          sudo chown 0:0 mosquitto/passwd
-          sudo chmod 600 mosquitto/passwd
+          sudo install -d -m 700 -o root -g root /var/lib/tempehlab/mosquitto
+          sudo install -d -m 700 -o root -g root /var/lib/tempehlab/mosquitto/data
+          sudo touch /var/lib/tempehlab/mosquitto/passwd /var/lib/tempehlab/mosquitto/acl
+          sudo chown root:root /var/lib/tempehlab/mosquitto/passwd /var/lib/tempehlab/mosquitto/acl
+          sudo chmod 600 /var/lib/tempehlab/mosquitto/passwd /var/lib/tempehlab/mosquitto/acl
 
-          # non-interactive vytvoření/aktualizace uživatelů
-          docker run --rm -v "$PWD/mosquitto:/mosquitto" eclipse-mosquitto:2 \
+          docker run --rm -v "/var/lib/tempehlab/mosquitto:/mosquitto" eclipse-mosquitto:2 \
             sh -c "mosquitto_passwd -b /mosquitto/passwd dev-001 \"$DEV_PW\" && \
                    mosquitto_passwd -b /mosquitto/passwd nodered \"$NR_PW\""
 

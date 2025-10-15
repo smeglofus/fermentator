@@ -4,10 +4,13 @@ services:
     image: eclipse-mosquitto:2
     ports: ["1883:1883"]
     volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - ./mosquitto/acl:/mosquitto/config/acl
-      - ./mosquitto/passwd:/mosquitto/config/passwd
-      - /var/lib/tempehlab/mosquitto:/mosquitto/data
+      # config z repozitáře jen na čtení
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      # runtime soubory z hosta (mimo repo)
+      - /var/lib/tempehlab/mosquitto/passwd:/mosquitto/config/passwd
+      - /var/lib/tempehlab/mosquitto/acl:/mosquitto/config/acl
+      # perzistentní data
+      - /var/lib/tempehlab/mosquitto/data:/mosquitto/data
     restart: unless-stopped
 
   nodered:
