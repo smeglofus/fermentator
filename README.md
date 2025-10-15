@@ -15,7 +15,7 @@ Minimal fermentation controller/monitor built for a single Raspberry Pi with Doc
 
 **Caddy** reverse‑proxy + static server for OTA files
 
-**Cloudflare Tunnel:** public access without router port‑forwarding. or **Tailscale** – private remote access (no public ports)
+**Cloudflare Tunnel:** public access without router port‑forwarding. or **Tailscale** – private remote access (no public ports).
 
 
 ## Features
