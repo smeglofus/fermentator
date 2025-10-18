@@ -55,5 +55,5 @@ services:
       # provisioning (datasources/dashboards)
       #- ./grafana/provisioning:/etc/grafana/provisioning:ro
       # přimountujeme DB i do grafany (pro datasource plugin)
-      - /var/lib/tempehlab/sqlite/fermenter.db:/var/lib/sqlite/fermenter.db:ro
+      - /var/lib/tempehlab/sqlite:/var/lib/sqlite:ro
     restart: unless-stopped
