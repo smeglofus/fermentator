@@ -96,19 +96,22 @@ Basic alerts (out‑of‑range, sensor loss) via Telegram
 
 ### Data scheme:
 
-CREATE TABLE IF NOT EXISTS reading (
-  ts            TEXT NOT NULL,                -- ISO-8601 UTC '...Z'
+`CREATE TABLE IF NOT EXISTS reading (
+  ts            TEXT NOT NULL,
   device_id     TEXT NOT NULL,
-  temp_c        REAL NOT NULL,                -- aktuální teplota
-  hum_pct       REAL NOT NULL,                -- aktuální vlhkost
-  temp_set_c    REAL,                         -- žádaná teplota (NULL ok)
-  hum_set_pct   REAL,                         -- žádaná vlhkost (NULL ok)
-  fan_on        INTEGER NOT NULL DEFAULT 0,   -- 0/1
-  heater_on     INTEGER NOT NULL DEFAULT 0,   -- 0/1
-  fw            TEXT                          -- verze FW (NULL ok)
-);
-CREATE INDEX IF NOT EXISTS idx_reading_ts       ON reading(ts);
-CREATE INDEX IF NOT EXISTS idx_reading_dev_ts   ON reading(device_id, ts);
+  temp_c        REAL NOT NULL,
+  hum_pct       REAL NOT NULL,
+  temp_set_c    REAL,
+  hum_set_pct   REAL,
+  fan_on        INTEGER NOT NULL DEFAULT 0,
+  heater_on     INTEGER NOT NULL DEFAULT 0,
+  fw            TEXT
+);`,
+`CREATE INDEX IF NOT EXISTS idx_reading_ts ON reading(ts);`,
+`CREATE INDEX IF NOT EXISTS idx_reading_dev_ts ON reading(device_id, ts);`
+
+return ddl.map(sql => ({ topic: sql }));
+
 
 
 Tailscale pro vzdálený přístup
