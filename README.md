@@ -96,15 +96,18 @@ Basic alerts (out‑of‑range, sensor loss) via Telegram
 
 ### Data scheme:
 
+
+
+# TODO - Upravit DB schéma tak jak je následovně + ještě něco ?
 reading(
   ts TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-  device_id TEXT,          -- může být NULL
-  temperature_c REAL,
-  ambient_c REAL,
-  humidity_pct REAL,
-  sg REAL,
-  relay_on INTEGER,
-  setpoint_c REAL,
+  device_id TEXT,
+  temperature_actual REAL,
+  temperature_wanted REAL,
+  humidity_actual REAL,
+  humidity_wanted REAL,
+  relay_heater INTEGER,
+  relay_fan INTEGER,
   fw TEXT
 )
 
