@@ -11,6 +11,7 @@ services:
     restart: unless-stopped
 
   nodered:
+    user: "1001:1001"
     image: nodered/node-red:latest
     environment: ["TZ=Europe/Prague"]
     ports: ["1880:1880"]
