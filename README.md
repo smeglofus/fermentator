@@ -96,9 +96,6 @@ Basic alerts (out‑of‑range, sensor loss) via Telegram
 
 ### Data scheme:
 
-
-
-# TODO - Upravit DB schéma tak jak je následovně + ještě něco ?
 reading(
   ts TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   device_id TEXT,
