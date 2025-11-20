@@ -111,4 +111,4 @@ reading(
 
 
 
-Tailscale pro vzdálený přístup
+Tailscale pro vzdálený přístu
