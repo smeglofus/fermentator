@@ -112,5 +112,3 @@ reading(
 
 
 Tailscale pro vzdálený přístup
-
-Malé API (FastAPI) pro CSV exporty a jednoduchou autorizaci
