@@ -49,7 +49,7 @@ services:
       - GF_SECURITY_ADMIN_USER=patrik
       - GF_SECURITY_ADMIN_PASSWORD=heslojesilne
       - GF_INSTALL_PLUGINS=frser-sqlite-datasource
-#      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning #test
+#      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       # perzistentní data grafany
       - /var/lib/tempehlab/grafana:/var/lib/grafana
