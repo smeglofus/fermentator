@@ -111,4 +111,6 @@ reading(
 
 
 
-Tailscale pro vzdálený přístu
+Todo:
+Vytvořit retenci - mazání dat
+komunikace NODERED -> ESP32 abych mohl měnit teplotu.
