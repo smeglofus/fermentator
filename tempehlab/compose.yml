@@ -20,15 +20,16 @@ services:
       - /var/lib/tempehlab/sqlite:/data/sqlite
     depends_on: [mosquitto]
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fermentator.rule=Host(`fermentator.ucimse.lol`)"
+      - "traefik.http.routers.fermentator.entrypoints=websecure"
+      - "traefik.http.routers.fermentator.tls=true"
+      - "traefik.http.services.fermentator.loadbalancer.server.port=1880"
+    networks:
+      - proxy_net
 
-  caddy:
-    image: caddy:latest
-    ports: ["80:80"]
-    volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - /var/lib/tempehlab/ota:/srv/ota
-    depends_on: [nodered]
-    restart: unless-stopped
+
 
   dozzle:
     image: amir20/dozzle:latest
@@ -59,3 +60,5 @@ services:
       # přimountujeme DB i do grafany (pro datasource plugin)
       - /var/lib/tempehlab/sqlite:/var/lib/sqlite:ro
     restart: unless-stopped
+    networks:
+      - proxy_net
