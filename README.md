@@ -1,116 +1,67 @@
 # Fermentator
-Minimal fermentation controller/monitor built for a single Raspberry Pi with Docker Compose. Telemetry from ESP32 every 5 s via MQTT; processing and UI in Node‑RED; data persisted in SQLite; optional Grafana for charts; Caddy for reverse‑proxy and OTA file serving.
+Minimal fermentation controller/monitor on a single Raspberry Pi (Docker Compose). ESP32 sends telemetry every 5 s over MQTT/TLS; Node-RED handles ingest + UI; SQLite stores data; optional Grafana for charts; Caddy works as reverse-proxy and OTA file server.
 
+## Stack
+- ESP32: telemetry + OTA via `esp_https_ota`
+- MQTT broker: Eclipse Mosquitto (auth, ACL, only retained state)
+- Node-RED: ingest -> DB, dashboard, commands, alerts, OTA orchestration
+- DB: SQLite (simple time-series table, retention job)
+- Caddy: reverse-proxy + static server for OTA files
+- Cloudflare Tunnel or Tailscale: remote access without exposed ports
 
-## Architecture Overview
+## Quick start (RPi/Docker)
+1. Install Docker + Docker Compose.
+2. `cp .env.example .env` and fill secrets (MQTT, Node-RED admin, Telegram bot/ID, Cloudflare/Tailscale token if used).
+3. `docker compose up -d`
+4. Open Node-RED (`http://<host>:1880`) and import `flows.json` (see Export/Import).
+5. Configure Mosquitto users/ACL based on `mosquitto.conf`.
+6. ESP32: set Wi-Fi, MQTT endpoint, TLS certs.
 
-
-**ESP32**: telemetry every 5 s over MQTT/TLS; downlink commands to change temperature setpoint; OTA via HTTPS (esp_https_ota).
-
-**MQTT broker:** Eclipse Mosquitto (auth, ACL; only state is retained).
-
-**Node‑RED** – flows (ingest→DB), dashboard, commands, alerts, OTA orchestration.
-
-**DB:** SQLite – simple time‑series table + retention job
-
-**Caddy** reverse‑proxy + static server for OTA files
-
-**Cloudflare Tunnel:** public access without router port‑forwarding. or **Tailscale** – private remote access (no public ports).
-
+## Data flow and schema
+- MQTT topic: `devices/<id>/telemetry` (QoS1, JSON).
+- Table `reading` (SQLite):
+  - ts TEXT default `strftime('%Y-%m-%dT%H:%M:%fZ','now')`
+  - device_id TEXT
+  - temperature_actual/wanted REAL
+  - humidity_actual/wanted REAL
+  - relay_heater INTEGER
+  - relay_fan INTEGER
+  - fw TEXT
+- Retention: cron/Node-RED `cron-plus` -> `DELETE older than 400d` + `VACUUM`.
 
 ## Features
+- Live dashboard: temperatures, SG, relay states, 24h chart.
+- One-click: set temperature, pause heating.
+- Downlink commands to ESP32 via MQTT (`cmd/setpoint`, `cmd/config`).
+- OTA: upload firmware, auto SHA-256, manifest, device notification.
+- Alerts (out of range, sensor loss) via Telegram.
 
-Live dashboard (temps, SG, relay status) + charts
+## Operations
+- Set temperature: dashboard slider -> MQTT `devices/<id>/cmd/setpoint`; ESP32 confirms in `state` within ~2 s.
+- OTA: upload firmware to `/ota/<device>/`; Node-RED calculates SHA-256, writes `manifest.json`, publishes `fw/notify`.
+- Backups: SQLite dump to `/backups` (cron). Restore: `sqlite3 fermentator.db < dump.sql`.
 
-One‑click actions: set temperature, pause heating
+## Export/Import Node-RED flows
+- The single source of truth for flows is `flows.json` in the repo (versioned in git).
+- It is **not** auto-exported on `git push`. Before you commit/push, export the current flows from the running Node-RED instance and save to `flows.json`, then commit/push.
+- Manual export (UI): Node-RED menu -> Export -> Clipboard -> All flows -> save into `flows.json` in the repo.
+- Manual export (API, for script or pre-push hook):
+  - Set `NODE_RED_API_KEY` (see `settings.js`).
+  - `curl -H "Node-RED-API-KEY: $NODE_RED_API_KEY" http://localhost:1880/flows -o flows.json`
+  - Commit `flows.json` together with code changes.
+- Import after rebuild/on a new machine:
+  - Start the docker stack, open Node-RED, Import -> select `flows.json` -> Deploy.
+  - API option: `curl -X POST -H "Node-RED-API-KEY: $NODE_RED_API_KEY" -H "Content-Type: application/json" --data @flows.json http://localhost:1880/flows` then Deploy.
+- Automation idea (optional): add a pre-push hook or a cron job that calls the export API before `git push` so the repo always carries the latest `flows.json`. This is opt-in and does not happen by default.
 
-Downlink commands to ESP32 via MQTT (cmd/setpoint, cmd/config)
+## Roadmap (milestones)
+- M2 Ingest & Dashboard: ingest flow, dashboard + 24h chart; DoD: new rows in `reading`, dashboard shows live values.
+- M3 Commands: UI slider for setpoint, confirmation within 2 s.
+- M4 OTA: A/B rollback test, version visible in `state`.
+- M5 Alerts & Retention: Telegram/email, delete >400d, VACUUM.
+- M6 Backups & Docs: `backup.sh`, restore guide, export/import Node-RED flows.
 
-OTA: upload FW, auto SHA‑256, update manifest, notify device
-
-Basic alerts (out‑of‑range, sensor loss) via Telegram
-
-
-## Roadmap / Milestones
-
-
-
----
-
-### M2 – Ingest & Dashboard (1–2 days)
-**Tasks**
-- Node-RED: install palettes (`node-red-node-postgres`, Dashboard if used)
-- **Ingest flow:** `mqtt in (devices/+/telemetry)` → `json` → `function(validate)` → Postgres **INSERT**
-- **Dashboard flow:** live gauges + simple 24h chart (MQTT stream or SQL query)
-- ESP32: sends telemetry every 5 s (QoS1, JSON)
-
-**DoD**
-- New rows appear in `reading`; dashboard shows latest values and a 24h curve.
-
----
-
-### M3 – Commands (0.5 day)
-**Tasks**
-- Node-RED Dashboard: UI slider/button “Setpoint”
-- Flow: UI → `devices/<id>/cmd/setpoint` (QoS1)
-- ESP32: confirmation in `devices/<id>/state` (e.g., `applied_setpoint`)
-- UI shows ACK (text/notification)
-
-**DoD**
-- Changing setpoint from UI → device confirms in `state` within ≤ 2 s.
-
----
-
-### M4 – OTA (0.5–1 day)
-**Tasks**
-- Caddy (or Node-RED file server): folder `/ota/<device>/`
-- Node-RED upload flow: accept firmware, compute **SHA-256**, write `manifest.json`
-- Publish `fw/notify` (MQTT) with `{ version, url, sha256 }`
-- ESP32: `esp_https_ota` + A/B rollback test
-
-**DoD**
-- Two consecutive successful OTA updates (A→B→A); version visible in `state`.
-
----
-
-### M5 – Alerts & Retention (0.5 day)
-**Tasks**
-- Alert flow: out-of-range temperature / ROC → Telegram or email
-- Retention: cron (Node-RED `cron-plus` or crontab) — `DELETE older than 400d` + `VACUUM`
-- UI parameters for thresholds (e.g., min/max temperature)
-
-**DoD**
-- Test alert delivered; old data are pruned on schedule.
-
----
-
-### M6 – Backups & Docs (0.5 day)
-**Tasks**
-- `postgres/backup.sh` + cron → daily `pg_dump` to `/backups` (SSD/NAS)
-- README: deployment steps, troubleshooting, restore procedure
-- Export/import Node-RED flows (`flows.json`) into the repo
-
-**DoD**
-- A fresh `.dump` exists and a restore into an empty DB was verified.
-
-
-### Data scheme:
-
-reading(
-  ts TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-  device_id TEXT,
-  temperature_actual REAL,
-  temperature_wanted REAL,
-  humidity_actual REAL,
-  humidity_wanted REAL,
-  relay_heater INTEGER,
-  relay_fan INTEGER,
-  fw TEXT
-)
-
-
-
-
-Todo:
-Vytvořit retenci - mazání dat
-komunikace NODERED -> ESP32 abych mohl měnit teplotu.
+## To-Do
+- Add retention job (cron/Node-RED).
+- Finish bidirectional Node-RED <-> ESP32 control for temperature changes.
+- Solve regular `flows.json` export (script/hook) and SQLite backups.

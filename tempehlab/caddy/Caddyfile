@@ -1,7 +1,0 @@
-:80 {
-  handle_path /ota/* {
-    root * /srv
-    file_server
-  }
-  reverse_proxy /nodered/* nodered:1880
-}
