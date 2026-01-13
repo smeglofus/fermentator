@@ -62,3 +62,7 @@ services:
     restart: unless-stopped
     networks:
       - proxy_net
+
+networks:
+  proxy_net:
+    external: true
