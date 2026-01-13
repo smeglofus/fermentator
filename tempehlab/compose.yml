@@ -23,8 +23,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fermentator.rule=Host(`fermentator.ucimse.lol`)"
-      - "traefik.http.routers.fermentator.entrypoints=websecure"
-      - "traefik.http.routers.fermentator.tls=true"
+      - "traefik.http.routers.fermentator.entrypoints=web"
+      - "traefik.http.routers.fermentator.tls=false"
       - "traefik.http.services.fermentator.loadbalancer.server.port=1880"
     networks:
       - proxy_net
