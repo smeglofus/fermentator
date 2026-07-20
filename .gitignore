@@ -5,3 +5,6 @@ caddy/ota/*
 mosquitto/passwd
 mosquitto/acl
 mossquitto/data/
+
+# runtime secrets (psáno deploy workflow, nikdy do gitu)
+tempehlab/.env
