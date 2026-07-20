@@ -1,12 +1,22 @@
 name: Deploy on RPi (self-hosted)
 
+# Deploy jen z main (+ ruční spuštění). Push jiné větve nesmí sáhnout na
+# běžící box — dřívější branches: ["**"] nasazovalo každý push čehokoli.
+#
+# Bezpečnostní pravidlo pro self-hosted runner na veřejném repu: trigger
+# smí být jen `push`/`workflow_dispatch` (ty z forků neběží). NIKDY sem
+# nepřidávat `pull_request` — fork PR by spustil cizí kód na RPi.
 on:
   push:
-    branches: ["**"]
+    branches: [main]
+  workflow_dispatch:
 
+# Deploye se řadí do fronty, nikdy se nezabíjí rozběhlý deploy —
+# cancel-in-progress: true umělo zrušit run mezi `down` a `up` a nechat
+# box shozený.
 concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -22,7 +32,11 @@ jobs:
       - name: Prepare secrets & files
         env:
           DEV_PW: ${{ secrets.MQTT_DEV001_PW }}
-          NR_PW:  ${{ secrets.MQTT_DEV001_PW }}
+          # Vlastní heslo pro Node-RED účet; dokud secret MQTT_NODERED_PW
+          # neexistuje, spadne se zpět na sdílené heslo zařízení (žádná
+          # změna chování) — ale rotace pak jde po jednom účtu.
+          NR_PW: ${{ secrets.MQTT_NODERED_PW || secrets.MQTT_DEV001_PW }}
+          GRAFANA_PW: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
         run: |
           set -e
           sudo install -d -m 700 -o root -g root /var/lib/tempehlab/mosquitto
@@ -35,15 +49,41 @@ jobs:
             sh -c "mosquitto_passwd -b /mosquitto/passwd dev-001 \"$DEV_PW\" && \
                    mosquitto_passwd -b /mosquitto/passwd nodered \"$NR_PW\""
 
-      - name: Pull images (optional)
+          # Grafana admin heslo už nesmí ležet v repu (public!) — compose ho
+          # čte z .env, který se plní z GitHub secretu. Bez nastaveného
+          # secretu deploy hlasitě spadne (viz :? v compose.yml).
+          umask 077
+          printf 'GRAFANA_ADMIN_PASSWORD=%s\n' "$GRAFANA_PW" > tempehlab/.env
+
+      - name: Pull images (best effort)
         working-directory: tempehlab
-        run: docker compose pull || true
+        run: docker compose pull || echo "::warning::compose pull failed — deploying with cached images"
 
       - name: Deploy (compose up)
         working-directory: tempehlab
+        # Bez `down` — up -d překlopí jen změněné kontejnery, zbytek stacku
+        # (běžící fermentace!) jede bez výpadku.
+        run: docker compose up -d --remove-orphans
+
+      - name: Verify deploy
+        working-directory: tempehlab
+        env:
+          NR_PW: ${{ secrets.MQTT_NODERED_PW || secrets.MQTT_DEV001_PW }}
         run: |
-          docker compose down
-          docker compose up -d --remove-orphans
+          set -e
+          # Node-RED a Grafana odpovídají na HTTP
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:1880 >/dev/null \
+               && curl -fsS http://localhost:3000/api/health >/dev/null; then
+              break
+            fi
+            if [ "$i" = 30 ]; then echo "HTTP health check failed after 60 s" >&2; exit 1; fi
+            sleep 2
+          done
+          # Broker přijme autentizovaný publish (ověří i čerstvý passwd soubor)
+          docker compose exec -T mosquitto \
+            mosquitto_pub -t healthcheck -m ok -u nodered -P "$NR_PW"
+          echo "Deploy healthy"
 
       - name: Show status
         run: docker ps
